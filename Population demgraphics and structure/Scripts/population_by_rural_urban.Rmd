@@ -1,0 +1,75 @@
+---
+title: "population_dem_1"
+output: html_document
+---
+# Set the directory 
+```{r}
+setwd("C:/Users/dobre/Desktop/RoFacts/Population demgraphics and structure/Data/")
+```
+
+# Load the data
+```{r}
+library(readr)
+
+ro_pop_02_17 <- read_csv("romaina_population.csv")
+```
+
+# Reshape the data
+```{r}
+library(reshape)
+
+# Reshape the data
+ro_pop_02_17 <-  melt(ro_pop_02_17, id = "Year")
+colnames(ro_pop_02_17) <- c("Year", "Zone", "Population")
+
+# Add the total per year
+ro_pop_02_17 <- ro_pop_02_17 %>% 
+  group_by(Year) %>% 
+  mutate(Total_population = sum(Population),
+         Prop = round(Population/Total_population * 100, 2)
+  ) %>% 
+  group_by(Zone) %>% 
+  mutate(time_difference = Prop - lag(Prop))
+
+```
+
+# Create the graph
+```{r}
+library(ggplot2)
+library(plotly)
+
+plot <- ro_pop_02_17 %>%
+  filter(! Zone %in% c("Rural")) %>% 
+  ggplot(aes(y = time_difference, x = Year, fill = Zone)) +
+  geom_line(stat = "identity") +
+  geom_point(stat = "identity") +
+  geom_hline(yintercept=0, linetype="dashed", color = "black") +
+  ggtitle("Changes in the Urban population (%)\n 2002-2017") +
+  labs(y="Change (%)", x = "Year") +
+  theme(
+    legend.position = "none",
+    axis.text=element_text(size = 9),
+    axis.ticks  = element_blank(),
+    axis.title = element_text(color="black", size=12, face="bold"),
+    axis.line.x = element_line(colour = "black"),
+    axis.line.y = element_line(colour = "black"),
+    panel.background = element_blank(),
+    panel.grid.major.y = element_blank()
+  ) 
+
+ggplotly(plot) %>%
+  config(displaylogo = FALSE,
+    collaborate = FALSE,
+    modeBarButtonsToRemove = c(
+      "sendDataToCloud",
+      "pan2d",
+      "select2d",
+      "lasso2d",
+      "zoomIn2d",
+      "zoomOut2d",
+      "resetScale2d",
+      "hoverClosestCartesian",
+      "hoverCompareCartesian"
+             ))
+```
+
